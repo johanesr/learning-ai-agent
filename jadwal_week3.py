@@ -153,6 +153,34 @@ def delete_event(title: str, start: str) -> dict:
     conn.close()
     return {"success": True, "deleted": {"title": title, "start": start}}
 
+def find_free_slot(duration_minutes: int, after: str, before: str) -> list:
+    """Find open windows of at least `duration_minutes` between `after` and `before`."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    rows = conn.execute(
+        "SELECT start, end FROM events WHERE start >= ? AND end <= ? ORDER BY start",
+        (after, before),
+    ).fetchall()
+    conn.close()
+
+    events = [dict(r) for r in rows]
+    duration = timedelta(minutes=duration_minutes)
+    cursor = datetime.fromisoformat(after)
+    window_end = datetime.fromisoformat(before)
+    free_slots = []
+
+    for e in events:
+        e_start = datetime.fromisoformat(e["start"])
+        e_end = datetime.fromisoformat(e["end"])
+        if e_start - cursor >= duration:
+            free_slots.append({"start": cursor.isoformat(), "end": e_start.isoformat()})
+        cursor = max(cursor, e_end)
+
+    if window_end - cursor >= duration:
+        free_slots.append({"start": cursor.isoformat(), "end": window_end.isoformat()})
+
+    return free_slots
+
 
 # Tool schemas — this is what the model actually sees. Get these
 # descriptions right; the model's behavior is only as good as this.
@@ -194,12 +222,26 @@ TOOLS = [
             "required": ["title", "start"],
         },
     },
+    {
+        "name": "find_free_slot",
+        "description": "Find open windows of at least `duration_minutes` between `after` and `before`.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "duration_minutes": {"type": "number"},
+                "after": {"type": "string", "description": "ISO 8601 datetime with +07:00 offset"},
+                "before": {"type": "string", "description": "ISO 8601 datetime with +07:00 offset"},
+            },
+            "required": ["duration_minutes", "after", "before"],
+        },
+    },
 ]
 
 TOOL_FUNCTIONS = {
     "list_events": lambda args: list_events(**args),
     "create_event": lambda args: create_event(**args),
     "delete_event": lambda args: delete_event(**args),
+    "find_free_slot": lambda args: find_free_slot(**args),
 }
 
 SYSTEM_PROMPT = f"""You are a scheduling assistant. Today is {datetime.now(TZ).strftime('%A, %Y-%m-%d %H:%M')} in Asia/Jakarta (+07:00).
