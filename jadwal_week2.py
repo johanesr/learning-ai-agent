@@ -20,6 +20,8 @@ SETUP:
 
 import json
 import anthropic
+import base64
+
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
@@ -44,6 +46,7 @@ class EventCreate(BaseModel):
             raise ValueError("end must be after start")
         return v
 
+
 load_dotenv()
 TZ = ZoneInfo("Asia/Jakarta")
 client = anthropic.Anthropic()
@@ -57,6 +60,27 @@ fake_calendar = [
     {"title": "Team standup", "start": "2026-09-16T09:00:00+07:00", "end": "2026-09-16T09:30:00+07:00"},
 ]
 
+def encode_image(path: str) -> str:
+    with open(path, "rb") as f:
+        return base64.standard_b64encode(f.read()).decode("utf-8")
+
+def parse_event_from_image(image_path: str) -> EventCreate:
+    image_b64 = encode_image(image_path)
+    response = client.messages.create(
+        model="claude-sonnet-5",
+        max_tokens=500,
+        system=f"Today is {datetime.now(TZ).strftime('%Y-%m-%d')} in Asia/Jakarta (+07:00). Extract the event from this image. Respond with ONLY a JSON object: {{\"title\": str, \"start\": ISO8601 datetime with +07:00, \"end\": ISO8601 datetime with +07:00}}. No other text.",
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": image_b64}},
+                {"type": "text", "text": "Extract the event from this image."},
+            ],
+        }],
+    )
+    raw = next(block.text for block in response.content if block.type == "text")
+    data = json.loads(raw)
+    return EventCreate(**data)  # validated, same Pydantic model as before
 
 # ---------------------------------------------------------------------
 # TOOLS — plain Python functions. The model never runs these itself;
@@ -225,3 +249,7 @@ if __name__ == "__main__":
             break
         conversation.append({"role": "user", "content": user_input})
         conversation = run_agent_loop(conversation)
+
+# if __name__ == "__main__":
+#     event = parse_event_from_image("image/test.png")
+#     print(event)
