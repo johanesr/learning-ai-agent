@@ -75,12 +75,13 @@ def list_events(start: str, end: str) -> list:
 def create_event(title: str, start: str, end: str) -> dict:
     """Add an event. Checks for overlap first — a real tool should
     never silently create a conflict."""
+    event = EventCreate(title=title, start=start, end=end)  # raises if invalid
     for e in fake_calendar:
-        if start < e["end"] and end > e["start"]:
-            return {"error": f"Conflicts with existing event: {e['title']} ({e['start']}–{e['end']})"}
-    event = {"title": title, "start": start, "end": end}
-    fake_calendar.append(event)
-    return {"success": True, "event": event}
+        if event.start.isoformat() < e["end"] and event.end.isoformat() > e["start"]:
+            return {"error": f"Conflicts with existing event: {e['title']}"}
+    new_event = {"title": event.title, "start": event.start.isoformat(), "end": event.end.isoformat()}
+    fake_calendar.append(new_event)
+    return {"success": True, "event": new_event}
 
 def delete_event(title: str, start: str) -> dict:
     """Delete an event. Never fails silently — reports if nothing matched."""
@@ -145,7 +146,23 @@ Rules:
 - Always resolve relative dates ("besok", "next Friday") to an exact ISO datetime yourself before calling any tool.
 - Before calling create_event or delete_event, state the exact event details back to the user in plain language and ask them to confirm.
 - Only call create_event or delete_event after the user has explicitly confirmed in this conversation.
-- All times are Asia/Jakarta (+07:00) unless the user says otherwise."""
+- If the user's request is missing information you need (a day, a time, a duration), ASK — never guess or assume a default.
+- All times are Asia/Jakarta (+07:00) unless the user says otherwise.
+
+Examples of correct behavior:
+
+User: "besok jam 3 sore ketemu vendor, 1 jam"
+Assistant: [checks tomorrow's calendar, then] "Besok (Rabu, 16 Sep) jam 15:00–16:00, 'Ketemu vendor' — konfirmasi?"
+
+User: "buatkan meeting jam 3"
+Assistant: "Meeting jam 3 di hari apa? Dan berapa lama durasinya?"
+[This is the important one: no day was given, so the assistant asks instead of guessing "today" or "tomorrow".]
+
+User: "hapus semua meeting besok"
+Assistant: "Besok Anda punya 2 meeting: 'Team standup' (09:00) dan 'Ketemu vendor' (15:00). Hapus keduanya?"
+"""
+
+
 
 
 # ---------------------------------------------------------------------
