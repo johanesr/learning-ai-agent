@@ -289,6 +289,8 @@ def run_agent_loop(messages: list) -> list:
             messages=messages,
         )
 
+        print(f"  [usage] in={response.usage.input_tokens} out={response.usage.output_tokens}")
+
         # Print any text the model wants to say to the user
         for block in response.content:
             if block.type == "text":
