@@ -43,14 +43,18 @@ anything you must measure, anything where cost at volume matters.
 | 1–2   | **The loop, by hand**          | Jadwal CLI, fake calendar, 4 tools, you can explain every byte                  |
 | 3     | **Context + data** *(compressed — you already know SQL)* | SQLite-backed, conflict detection, answers questions about data it had to fetch. Skips SQL basics; focuses on tool-function design over queries, schema-for-reasoning, token budgeting. |
 | 4     | **n8n, deliberately**          | The same agent rebuilt in n8n. A written comparison: what it saved, what it hid |
-| 5–6   | **MCP + real Google Calendar** | OAuth, refresh tokens, your tools as an MCP server in Claude Desktop            |
-| 7–8   | **Evals**                      | 25 test phrases, a score you can state as a number                              |
-| 9–10  | **Ship**                       | FastAPI or Telegram front end, deployed, logged, cost-tracked                   |
-| 11–12 | **Company pilot**              | One narrow Odoo process, measured against the manual version                    |
+| 5     | **MCP + real Google Calendar** *(compressed — FastAPI already proven in Week 4, MCP is thin)* | OAuth, refresh tokens, your tools as an MCP server in Claude Desktop, backed by your real calendar |
+| 6–7   | **Evals**                      | 25 test phrases, a score you can state as a number                              |
+| 8–9   | **Ship**                       | FastAPI (already de-risked) or Telegram front end, deployed, logged, cost-tracked |
+| 10–11 | **Company pilot**              | One narrow process against the real in-house Postgres system, measured against the manual version |
 
 *(Updated 2026-09-16: Week 3-4 compressed to Week 3 alone since Johanes already
-knows SQL — everything downstream shifted earlier by one week. n8n now lands
-Week 4 instead of Week 5.)*
+knows SQL. n8n lands Week 4.)*
+*(Updated 2026-09-18: Weeks 5-6 (MCP + OAuth) compressed to Week 5 alone —
+FastAPI groundwork already done in Week 4's `jadwal_api.py`, and MCP itself is
+mostly decorators over existing functions. OAuth remains the one real risk to
+this compression, flagged in `plan/week-5-mcp.md` — if it runs long, let it,
+rather than force the rest of the week. 11 weeks total now, not 12.)*
 
 
 Two weeks longer than v1, because v1's Phase 5 was overloaded and would have
@@ -403,21 +407,32 @@ belong in n8n and which belong in code.
 
 # WEEKS 6–13 — Outline
 
-Same content as `ai-agent-learning-plan.md`, shifted by one week and with
-Phase 5 split in two:
+Updated 2026-09-18: Weeks 5-6 (MCP + OAuth) compressed to Week 5 alone, and
+**Phase 6's target system corrected — not Odoo.** The company runs a
+**custom, in-house, Postgres-backed system**, not Odoo. This is better news
+than it sounds: no third-party ERP API/ORM quirks to learn on top of
+everything else, and it plays directly to Johanes's existing SQL depth. The
+tradeoff: no pre-built open-source MCP server to reference for this one —
+Step 5.9's Odoo-MCP-reading exercise becomes general pattern research only,
+not something to adapt line-by-line.
 
-- **6–7** MCP + real Google Calendar (OAuth, refresh tokens, Claude Desktop)
-- **8–9** Evals — 25 real phrases, expected JSON, a score you run before and
-after every prompt change
-- **10** FastAPI + background jobs + Pydantic validation
-- **11** Observability, cost tracking, Docker, VPS deploy
-- **12–13** Company pilot: vendor invoices → extracted → draft bill in Odoo →
-human approves. Dev instance only. Two weeks running in parallel with the
-human process, compared daily.
+- **6–7** Evals — 25 real phrases, expected JSON, a score you run before and
+  after every prompt change
+- **8–9** Ship — FastAPI (already proven, `jadwal_api.py`), background jobs,
+  observability, cost tracking, Docker, VPS deploy, Telegram-first then
+  WhatsApp front end
+- **10–11** Company pilot: pick one narrow, real process against the
+  in-house Postgres system (originally scoped as invoice processing in the
+  source plan — confirm this still matches, or pick the actual
+  highest-hours-bleeding process once we're there). Build purpose-built
+  tools with real validation gates (same pattern as `EventCreate`), not
+  raw/generic DB access. Dev/staging copy only, never production directly.
+  Two weeks running in parallel with the human process, compared daily.
 
 We'll expand each of these into Week-1-level detail when you get there — no
 point writing it now, since what you struggle with in weeks 1–5 changes what
-weeks 6+ should emphasise.
+weeks 6+ should emphasise, and Phase 6's exact process/schema needs
+confirming closer to the time regardless.
 
 ---
 
